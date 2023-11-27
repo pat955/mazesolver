@@ -1,10 +1,14 @@
+import time 
 from tkinter import Tk, BOTH, Canvas
 
 def main():
-    win = Window(800, 800)
-    c = Cell(0, 0, 100, 100, win)
-    c.draw()
+    window_x = 800
+    window_y = 800
+    win = Window(window_x, window_y)
 
+    maze = Maze(20, 20, 16, 40, win)
+    
+    maze.create_cells()
     win.wait_for_close()
 
 class Window:
@@ -13,7 +17,7 @@ class Window:
         self.__root.title("Maze Solver")
         self.__root.protocol("WM_DELETE_WINDOW", self.close)
         self.canvas = Canvas(self.__root, bg="white", height=height, width=width)
-        self.canvas.pack()
+        self.canvas.pack(expand=1)
         self.__running = False
 
     def redraw(self):
@@ -38,7 +42,6 @@ class Point:
         self.x = x
         self.y = y
 
-
 class Line:
     def __init__(self, p1, p2):
         self.p1 = p1
@@ -48,7 +51,7 @@ class Line:
         canvas.create_line(
             self.p1.x, self.p1.y, self.p2.x, self.p2.y, fill=fill_color, width=2
         )
-        canvas.pack()
+        canvas.pack(expand=1)
 
 class Cell:
     def __init__(self, x1, y1, x2, y2, win):
@@ -73,5 +76,37 @@ class Cell:
         if self.bottom:
             Line(Point(self.x1, self.y1), Point(self.x2, self.y1)).draw(canvas)
 
+    def draw_move(self, to_cell, undo=False):
+        start = Point(self.x2/2, self.y2/2)
+        end = Point(to_cell.x2/1.25, to_cell.y2/2)
+        Line(start, end).draw(self.win.canvas, 'red')
 
+class Maze:
+    def __init__(self, x, y, grid_num, cell_size, win):
+        self.x = x
+        self.y = y
+        self.grid_num = grid_num
+        self.cell_size = cell_size
+        self.win = win
+        self.cells = []
+
+    def create_cells(self):
+        cell_x, cell_y = self.x, self.y
+        for i in range(self.grid_num**2):
+            if i % self.grid_num == 0 :
+                cell_y += self.cell_size
+                cell_x = self.x
+        
+            self.cells.append(Cell(cell_x, cell_y, cell_x + self.cell_size, cell_y + self.cell_size, self.win))
+            cell_x += self.cell_size
+        if len(self.cells) != self.grid_num**2:
+            print(len(self.cells), grid_num)
+        for cell in self.cells:
+            cell.draw()
+            self.animate()
+    
+    def animate(self):
+        self.win.redraw()
+        time.sleep(0.01)
+ 
 main()
