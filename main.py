@@ -3,18 +3,19 @@ import random
 from tkinter import Tk, BOTH, Canvas
 
 def main():
-    window_x = 800
-    window_y = 800
+    window_x = 1800
+    window_y = 1000
     win = Window(window_x, window_y)
 
-    maze = Maze(10, 10, 10, 40, win, random.seed(0))
+    maze = Maze(10, 10, 30, 25, win)
    
     maze.create_cells()
+    maze.cells[0][0].draw('red')
     maze.break_enterance_and_exit_walls()
     maze.break_walls_r(0, 0)
+    maze.reset_cells_visited()
+    maze.solve()
     win.wait_for_close()
-
-DIRECTIONS = ['top', 'right', 'left', 'bottom']
 
 class Window:
     def __init__(self, width, height):
@@ -99,11 +100,25 @@ class Cell:
         else:
             Line(Point(self.x1, self.y2), Point(self.x2, self.y2)).draw(canvas, 'white')
 
-    def draw_move(self, to_cell, undo=False):
-        start = Point(self.x2/2, self.y2/2)
-        end = Point(to_cell.x2/1.25, to_cell.y2/2)
-        Line(start, end).draw(self.win.canvas, 'red')
-            
+    def draw_move(self, to_cell, direction, undo=False):
+        x1, x2, y1, y2 = self.x1, self.x2, self.y1, self.y2
+        directions = {
+            (0, 1): (((x2 - x1)/2 + x1, (y2 - y1)/2 + y1), ((x2 - x1)/2 + x2, (y2 - y1)/2+ y1)),
+            (0, -1): ((x1 - (x2 - x1)/2, (y2 - y1)/2 + y1), (x2 - (x2 - x1)/2, (y2 - y1)/2+ y1)),
+
+            (-1, 0): (((x2 - x1)/2 + x1, y1-(y2 - y1)/2), ((x2 - x1)/2 + x1, y2- (y2 - y1)/2 )),
+            (1, 0): (((x2 - x1)/2 + x1, (y2 - y1)/2 + y1), ((x2 - x1)/2 + x1, (y2 - y1)/2 + y2))
+        }
+        recipe = directions[direction]
+
+        if undo:
+            start = Point(recipe[0], recipe[1])
+            end = Point(recipe[0], recipe[1])
+            self.win.draw_line(Line(start, end), 'gray')
+        else:
+            start = Point(recipe[0], recipe[1])
+            end = Point(recipe[0], recipe[1])
+            self.win.draw_line(Line(start, end), 'red')
 
 class Maze:
     def __init__(self, x, y, grid_num, cell_size, win=None, seed=None):
@@ -115,6 +130,7 @@ class Maze:
         self.cells = []
         self.seed = seed
 
+
     def break_enterance_and_exit_walls(self):
         first_cell = self.cells[0][0]
         first_cell.top = False
@@ -123,109 +139,132 @@ class Maze:
         exit_cell = self.cells[-1][-1]
         exit_cell.bottom = False
         exit_cell.draw()
+
+
     def break_walls_r(self, i, j):
         self.cells[i][j].visited = True
         while True:
             to_visit = []
-            possible_directions = self.find_adjecent(i, j)
-            if possible_directions == []:
-                self.cells[i][j].draw('red')
+            adjecent_cells = self.find_adjecent_cells(i, j)
+            if adjecent_cells == []:
+                self.cells[i][j].draw()
                 return
-            adjecent_values = [(0, -1), (0,1), ]
-            chosen_direction_info = random.choice(possible_directions)
-            self.break_walls_between_two_cells(self.cells[i][j], chosen_direction_info)
-            self.break_walls_r()
+            chosen_cell = random.choice(adjecent_cells)
+            self.break_adjecent_walls(i, j, chosen_cell[0], chosen_cell[1])
+            self.break_walls_r(i + chosen_cell[1][0], j + chosen_cell[1][1])        
+            
 
-    def find_adjecent(self, i, j):
-        directions = {'top': (0, -1), 'right': (1, 0), 'left': (-1, 0), 'bottom': (0, 1)}
-        possible_directions = []
-        for direction, values in directions:
-            try:
-                if i + values[0] >= 0 and j + values[1] >= 0:
-                    possible_directions.append((direction, self.cells[i + values[0][j + values[1]]]))
-        return [info for info in possible_directions if info[1].visited == False]
-
-    def break_walls_r(self, to_visit, current_cell):
-        current_cell.visited = True
-        while True:
-            to_visit = []
-            to_visit.append(self.find_adjecent)
-            possible_directions = self.find_adjecent(current_cell)
-            if possible_directions == []:
-                current_cell.draw()
-                self.animate()
-                return
-            for direction in possible_directions:
-                direction[1].draw('pink')
-                self.animate()
-            chosen_direction = random.choice(possible_directions)
-            new_cell = chosen_direction[1]
-            self.break_walls_between_two(current_cell, chosen_direction)
-            self.break_walls_r(to_visit, new_cell)
-
-    def break_walls_between_two_cells(self, current_cell, direction_info):
-        direction = direction_info[0]
-        chosen_cell = direction_info[1]
-        if direction == 'top':
+    def break_adjecent_walls(self, i, j, chosen_cell, direction):
+        current_cell = self.cells[i][j]
+        if direction == (-1, 0):
             current_cell.top= False
             chosen_cell.bottom = False
-        elif direction == 'right':
+        elif direction == (0, 1):
             current_cell.right = False
             chosen_cell.left = False
-        elif direction == 'left':
+        elif direction == (0, -1):
             current_cell.left = False
             chosen_cell.right = False
-        elif direction == 'bottom':
+        elif direction == (1, 0):
             current_cell.bottom = False
-            current_cell.top = False
-        else:
-            print('Something went wrong!')
+            chosen_cell.top = False
+        chosen_cell.draw('red')
+        self.cells[i][j].draw('pink')
+        self.animate()
 
-    def find_adjecent(self, target_cell):
-        directions = {'top': (-1, 0), 'right': (0, 1), 'left': (0, -1), 'bottom': (1, 0)}
-        adjecent = []
-        i_row = -1
-        for row in self.cells:
-            i_row += 1
-            i = -1
-            for cell in row:
-                i += 1
-                if cell == target_cell:
-                    for direction, val in directions.items():
-                        try:
-                            new_row = i_row + val[0]
-                            new_i = i + val[1]
-                            if new_i >= 0 and new_row >= 0:
-                                adjecent.append((direction, self.cells[new_i][new_row]))
-                        except:
-                            continue
-        return [info for info in adjecent if info[1].visited == False]
+
+    def find_adjecent_cells(self, i, j):
+        vals = [(-1, 0), (0, 1), (0, -1), (1, 0)]
+        adjecent_cells = []
+        for index in range(4):
+            try:
+                if i + vals[index][0] >= 0 and j + vals[index][1] >= 0:
+                    adjecent_cells.append((self.cells[i + vals[index][0]][j + vals[index][1]], vals[index]))
+            except:
+                pass
+        return [cell for cell in adjecent_cells if cell[0].visited == False]
+
+
+    def find_open_adjecent_cells(self, i, j):
+        valid_cells = []
+        
+        cells = self.find_adjecent_cells(i, j)
+        for info in cells:
+            cell, direction = info[0], info[1]
+
+            if direction == (-1, 0):
+                if not cell.bottom:
+                    valid_cells.append((cell, direction))
+            elif direction == (0, 1):
+                if not cell.left:
+                    valid_cells.append((cell, direction))
+            elif direction == (0, -1):
+                if not cell.right:
+                    valid_cells.append((cell, direction))
+            elif direction == (1, 0):
+                if not cell.top:
+                    valid_cells.append((cell, direction))
+        return valid_cells
+
 
     def reset_cells_visited(self):
         for row in self.cells:
             for cell in row:
                 cell.visited = False
+    
+
+    def solve(self):
+        return self.solve_r(0, 0)
+
+
+    def solve_r(self, i, j):
+        self.animate()
+        current_cell = self.cells[i][j]
+        current_cell.visited = True
+        if current_cell == self.cells[-1][-1]:
+            return True
+        valid_cells = self.find_open_adjecent_cells(i, j)
+        for cell, direction in valid_cells:
+            if not cell.visited:
+                current_cell.draw_move(cell, direction)
+                if self.solve_r(i+direction[0],j+direction[1]):
+                    return True
+                else:
+                    current_cell.draw_move(cell, direction, True)
+        return False
 
     def create_cells(self):
         cell_x, cell_y = self.x, self.y
-
         for i in range(self.grid_num):   
             for j in range(self.grid_num):
                 if j % self.grid_num == 0 :
                     self.cells.append([])
                     cell_y += self.cell_size
                     cell_x = self.x
-                
                 self.cells[i].append(Cell(cell_x, cell_y, cell_x + self.cell_size, cell_y + self.cell_size, self.win))
                 cell_x += self.cell_size
-
         for row in self.cells:
             for cell in row:
                 cell.draw()
                 
+                
     
-    def animate(self):
-        self.win.redraw() 
-        time.sleep(0.4)
+    def animate(self, sleep_time=0.01):
+        self.win.redraw()
+        time.sleep(sleep_time)
+        
  
 main()
+
+"""
+IDEAS FOR EXTENDING THE PROJECT
+Add other solving algorithms, like breadth-first search or A*
+Make the visuals prettier, change the colors, etc
+Mess with the animation settings to make it faster/slower. Maybe make backtracking slow and blazing new paths faster?
+Add configurations in the app itself using Tkinter buttons and inputs to allow users to change maze size, speed, etc
+Make much larger mazes to solve
+Make it a game where the user chooses directions
+If you made it a game, allow the user to race an algorithm
+Make it 3 dimensional
+Time the various algorithms and see which ones are the fastest
+"""
