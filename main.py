@@ -1,13 +1,19 @@
 import time 
 import random
 from tkinter import Tk, BOTH, Canvas
+from tkinter import messagebox
+
+# Figure out how to close window while it animates
+# Add documentation 
+# Add more interaction
+# Clean code up
 
 def main():
     window_x = 1800
     window_y = 1000
     win = Window(window_x, window_y)
 
-    maze = Maze(10, 10, 30, 25, win)
+    maze = Maze(10, 10, 30, 30, win)
    
     maze.create_cells()
     maze.cells[0][0].draw('red')
@@ -121,14 +127,13 @@ class Cell:
             self.win.draw_line(Line(start, end), 'red')
 
 class Maze:
-    def __init__(self, x, y, grid_num, cell_size, win=None, seed=None):
+    def __init__(self, x, y, grid_num, cell_size, win):
         self.x = x
         self.y = y
         self.grid_num = grid_num
         self.cell_size = cell_size
         self.win = win
         self.cells = []
-        self.seed = seed
 
 
     def break_enterance_and_exit_walls(self):
@@ -168,7 +173,7 @@ class Maze:
         elif direction == (1, 0):
             current_cell.bottom = False
             chosen_cell.top = False
-        chosen_cell.draw('red')
+        
         self.cells[i][j].draw('pink')
         self.animate()
 
@@ -231,6 +236,7 @@ class Maze:
                     return True
                 else:
                     current_cell.draw_move(cell, direction, True)
+                    #self.animate(0.1) for slow undo
         return False
 
     def create_cells(self):
@@ -246,7 +252,6 @@ class Maze:
         for row in self.cells:
             for cell in row:
                 cell.draw()
-                
                 
     
     def animate(self, sleep_time=0.01):
