@@ -1,7 +1,7 @@
 import time 
 import random
+import tkinter
 from tkinter import Tk, BOTH, Canvas
-from tkinter import messagebox
 
 # Figure out how to close window while it animates
 # Add documentation 
@@ -9,14 +9,13 @@ from tkinter import messagebox
 # Clean code up
 
 def main():
-    window_x = 1800
-    window_y = 1000
+    window_x = 900
+    window_y = 900
     win = Window(window_x, window_y)
 
-    maze = Maze(10, 10, 30, 30, win)
+    maze = Maze(10, 10, 25, 40, 35, win)
    
     maze.create_cells()
-    maze.cells[0][0].draw('red')
     maze.break_enterance_and_exit_walls()
     maze.break_walls_r(0, 0)
     maze.reset_cells_visited()
@@ -28,13 +27,19 @@ class Window:
         self.__root = Tk()
         self.__root.title("Maze Solver")
         self.__root.protocol("WM_DELETE_WINDOW", self.close)
+        self.__root.attributes('-zoomed', True)
+        #self.mainframe = tkinter.Frame(self.__root())
         self.canvas = Canvas(self.__root, bg="white", height=height, width=width)
-        self.canvas.pack(expand=1)
+        self.canvas.pack(fill='both', expand=True)
         self.__running = False
+        #self.button_exit = tkinter.Button(self.__root, text='Force quit', width=10, height=2, bd='10', command=self._quit)
+        #self.button_exit.place(x=1700, y=10)
 
+        
     def redraw(self):
         self.__root.update_idletasks()
         self.__root.update()
+
 
     def wait_for_close(self):
         self.__running = True
@@ -42,11 +47,19 @@ class Window:
             self.redraw()
         print("Window closed...")
 
+
     def draw_line(self, line, fill_color="black"):
         line.draw(self.canvas, fill_color)
 
+
     def close(self):
         self.__running = False
+    
+
+    def _quit(self):
+        self.__running = False
+        self.__root.quit()
+        self.__root.destroy()
 
 
 class Point:
@@ -64,7 +77,7 @@ class Line:
         canvas.create_line(
             self.p1.x, self.p1.y, self.p2.x, self.p2.y, fill=fill_color, width=2
         )
-        canvas.pack(expand=1)
+        canvas.pack(fill='both', expand=True)
 
 
 class Cell:
@@ -124,13 +137,14 @@ class Cell:
         else:
             start = Point(recipe[0], recipe[1])
             end = Point(recipe[0], recipe[1])
-            self.win.draw_line(Line(start, end), 'red')
+            self.win.draw_line(Line(start, end), 'red2')
 
 class Maze:
-    def __init__(self, x, y, grid_num, cell_size, win):
+    def __init__(self, x, y, rows, columns, cell_size, win):
         self.x = x
         self.y = y
-        self.grid_num = grid_num
+        self.rows = rows
+        self.columns = columns
         self.cell_size = cell_size
         self.win = win
         self.cells = []
@@ -241,9 +255,9 @@ class Maze:
 
     def create_cells(self):
         cell_x, cell_y = self.x, self.y
-        for i in range(self.grid_num):   
-            for j in range(self.grid_num):
-                if j % self.grid_num == 0 :
+        for i in range(self.rows):   
+            for j in range(self.columns):
+                if j % self.columns == 0 :
                     self.cells.append([])
                     cell_y += self.cell_size
                     cell_x = self.x
@@ -252,6 +266,7 @@ class Maze:
         for row in self.cells:
             for cell in row:
                 cell.draw()
+                self.animate(0.00001)
                 
     
     def animate(self, sleep_time=0.01):
