@@ -1,7 +1,7 @@
 import time 
 import random
 import tkinter
-from tkinter import Tk, BOTH, Canvas
+from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry
 
 # Figure out how to close window while it animates
 # Add documentation 
@@ -9,31 +9,46 @@ from tkinter import Tk, BOTH, Canvas
 # Clean code up
 
 def main():
-    window_x = 900
-    window_y = 900
-    win = Window(window_x, window_y)
-
-    maze = Maze(10, 10, 25, 40, 35, win)
-   
-    maze.create_cells()
-    maze.break_enterance_and_exit_walls()
-    maze.break_walls_r(0, 0)
-    maze.reset_cells_visited()
-    maze.solve()
+    win = Window(900, 900)
     win.wait_for_close()
 
 class Window:
     def __init__(self, width, height):
+
         self.__root = Tk()
+        self.__root.bg = 'white'
         self.__root.title("Maze Solver")
+        self.__root.configure(background='white')
         self.__root.protocol("WM_DELETE_WINDOW", self.close)
         self.__root.attributes('-zoomed', True)
-        #self.mainframe = tkinter.Frame(self.__root())
-        self.canvas = Canvas(self.__root, bg="white", height=height, width=width)
+        self.__root.columnconfigure(0, weight=1)
+        self.__root.columnconfigure(1, weight=0)
+        self.__root.rowconfigure(0, weight=1)
+     
+
+        self.main_frame = Frame(self.__root, bg='white')
+        self.main_frame.grid(column=0, row=0, sticky="nsew")
+        
+        self.option_frame = Frame(self.__root, bg='white')
+        self.option_frame.grid(column=1, row=0, sticky="ens")
+    
+        self.canvas = Canvas(self.main_frame, bg="white")
         self.canvas.pack(fill='both', expand=True)
+        
         self.__running = False
-        #self.button_exit = tkinter.Button(self.__root, text='Force quit', width=10, height=2, bd='10', command=self._quit)
-        #self.button_exit.place(x=1700, y=10)
+        
+        self.exit_button = Button(self.option_frame, text='Force quit', bg='lavender', command=self._quit)
+        self.exit_button.pack(side="top", fill="x")
+
+        self.run_button = Button(self.option_frame, text='Run Maze', bg='lavender', command=self.run_and_solve_maze)
+        self.run_button.pack(side="top", fill="x", pady='10')
+
+        self.reset_button = Button(self.option_frame, text='Reset', bg='lavender', command=self.reset_maze)    
+        self.reset_button.pack(side="top", fill="x")
+
+        self.seed_entry = Entry(self.option_frame, text='Seed', bg='lavender')
+        self.seed_entry.pack(side="top", fill="x", pady='10')
+        random.seed(self.seed_entry.get())
 
         
     def redraw(self):
@@ -61,6 +76,21 @@ class Window:
         self.__root.quit()
         self.__root.destroy()
 
+
+    def run_and_solve_maze(self):
+        maze = Maze(25, 45, 35, self)
+        maze.create_cells()
+        maze.break_enterance_and_exit_walls()
+        maze.break_walls_r(0, 0)
+        maze.reset_cells_visited()
+        maze.solve()
+
+
+    def reset_maze(self):
+        self.canvas.delete('all')
+
+    def enter_seed(self, seed):
+        random.seed(seed)
 
 class Point:
     def __init__(self, x, y):
@@ -134,9 +164,9 @@ class Cell:
             self.win.draw_line(Line(start, end), 'red2')
 
 class Maze:
-    def __init__(self, x, y, rows, columns, cell_size, win):
-        self.x = x
-        self.y = y
+    def __init__(self, rows, columns, cell_size, win):
+        self.x = 20
+        self.y = 0
         self.rows = rows
         self.columns = columns
         self.cell_size = cell_size
@@ -244,7 +274,7 @@ class Maze:
                     return True
                 else:
                     current_cell.draw_move(cell, direction, True)
-                    #self.animate(0.1) for slow undo
+                    #self.animate(0.01)# for slow undo
         return False
 
     def create_cells(self):
