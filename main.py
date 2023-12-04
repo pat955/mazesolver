@@ -92,32 +92,26 @@ class Cell:
         self.y2 = y2
         self.win = win
         self.visited = False
+        
 
     def __repr__(self):
-        return '!'
-        #return f'|({self.x1}, {self.y1}), ({self.x2}, {self.y2})|'
+        return f'|({self.x1}, {self.y1}), ({self.x2}, {self.y2})|'
 
     def draw(self, color='black'):
         canvas = self.win.canvas
-        if self.left:
-            Line(Point(self.x1, self.y1), Point(self.x1, self.y2)).draw(canvas, color)
-        else:
-            Line(Point(self.x1, self.y1), Point(self.x1, self.y2)).draw(canvas,'white')
+        walls = [
+            (self.left, Line(Point(self.x1, self.y1), Point(self.x1, self.y2))),
+            (self.right, Line(Point(self.x2, self.y1), Point(self.x2, self.y2))),
+            (self.top, Line(Point(self.x1, self.y1), Point(self.x2, self.y1))),
+            (self.bottom, Line(Point(self.x1, self.y2), Point(self.x2, self.y2)))
+            ]
 
-        if self.right:
-            Line(Point(self.x2, self.y1), Point(self.x2, self.y2)).draw(canvas)
-        else:
-            Line(Point(self.x2, self.y1), Point(self.x2, self.y2)).draw(canvas, 'white') 
+        for wall, line in walls:
+            if wall:
+                line.draw(canvas, color)
+            else:
+                line.draw(canvas, 'white')
 
-        if self.top:
-            Line(Point(self.x1, self.y1), Point(self.x2, self.y1)).draw(canvas, color)
-        else:
-            Line(Point(self.x1, self.y1), Point(self.x2, self.y1)).draw(canvas, 'white')
-
-        if self.bottom:
-            Line(Point(self.x1, self.y2), Point(self.x2, self.y2)).draw(canvas, color)
-        else:
-            Line(Point(self.x1, self.y2), Point(self.x2, self.y2)).draw(canvas, 'white')
 
     def draw_move(self, to_cell, direction, undo=False):
         x1, x2, y1, y2 = self.x1, self.x2, self.y1, self.y2
