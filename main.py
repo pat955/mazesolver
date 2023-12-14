@@ -1,19 +1,25 @@
 import time 
 import random
 import tkinter
+from functools import partial
 from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 
-# Figure out how to close window while it animates
 # Add documentation 
 # Add more interaction
-# Clean code up
-RUNNING = False
+# Clean code up----------------------------------------------
+# Add customization, rows, columns, speed
+# make the maze resize according to size
+# Fix error when force quitting
+# Function queue
+# resize to fit everything so 1000 cells are possible.
+
 def main():
     win = Window(900, 900)
-    win.wait_for_close()
 
 class Window:
     def __init__(self, width, height):
+        # Main variables
+        self.__running = False
         self.__root = Tk()
         self.__root.bg = 'white'
         self.__root.title("Maze Solver")
@@ -25,6 +31,8 @@ class Window:
         self.__root.rowconfigure(0, weight=1)
         self.current_maze = None
 
+        # self.maze_settings = {self.current_maze.rows:25, self.current_maze.colums:45, self.current_maze.cell_size:0, self.current_maze.slow_undo:0}
+        # Frames, canvas:
         self.main_frame = Frame(self.__root, bg='white')
         self.main_frame.grid(column=0, row=0, sticky="nsew")
         
@@ -34,38 +42,56 @@ class Window:
         self.canvas = Canvas(self.main_frame, bg="white")
         self.canvas.pack(fill='both', expand=True)
         
-        self.__running = False
-        
-        #self.exit_button = Button(self.option_frame, text='Force quit', bg='lavender', command=self._quit)
-        #self.exit_button.pack(side="top", fill="x")
-
+        # Buttons and labels:
         self.run_button = Button(self.option_frame, text='Run Maze', bg='lavender', command=self.run_and_solve_maze)
-        self.run_button.pack(side="top", fill="x", pady='15')
+        self.run_button.pack(side="top", fill="x", pady='10')
+        self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
+        self.rerun_button.pack(side="top", fill="x")
         
-        self.pause_button =  0
-        self.rows_entry = 0
-        self.columns_entry = 0
-        #self.reset_button = Button(self.option_frame, text='Reset', bg='lavender', command=self.reset_maze)    
-        #self.reset_button.pack(side="top", fill="x")
+        # self.speed_button = 0
+        # self.enable_slow_undo_button = Button(self.option_frame, text='Enable slow undo')
+        """
+        self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
+        self.pause_button.pack(side="top", fill="x", pady='5')
+        self.unpause_button = Button(self.option_frame, text='Unpause', bg='lavender', command=self.unpause)
+        """
+        #self.unpause_button.pack(side="top", fill="x", pady='5')
+        
+        
         self.seed_label = Label(self.option_frame, text='Seed', bg='white')
         self.seed_label.pack(side="top", fill="x")
         
         self.seed_entry = Entry(self.option_frame, bg='lavender')
         self.seed_entry.pack(side="top", fill="x")
-        
-        random.seed(self.seed_entry.get())
+        #rows and columns
+        self.rows_label = Label(self.option_frame, text='Rows', bg='white')
+        self.rows_label.pack(side="top", fill="x")
+        self.rows_entry = Entry(self.option_frame, bg='lavender')
+        self.rows_entry.pack(side='top', fill='x')
+
+        self.columns_label = Label(self.option_frame, text='Columns', bg='white')
+        self.columns_label.pack(side="top", fill="x")
+        self.columns_entry = Entry(self.option_frame, bg='lavender')
+        self.columns_entry.pack(side="top", fill="x")
 
         
+        self.__root.mainloop()
+        
+        #self.skip_button = Button(self.option_frame, text='Skip', bg='lavender', command=skip)
+        
+        #self.__root.bind("<Configure>", self.resize)
+        """
+        excess parts, no longer needed, but could be useful:
+        #self.reset_button = Button(self.option_frame, text='Reset', bg='lavender', command=self.reset_maze)    
+        #self.reset_button.pack(side="top", fill="x")
+        #self.exit_button = Button(self.option_frame, text='Force quit', bg='lavender', command=self._quit)
+        #self.exit_button.pack(side="top", fill="x")
+        """
+
     def redraw(self):
+        # Updates the screen to match whats happening
         self.__root.update_idletasks()
         self.__root.update()
-
-
-    def wait_for_close(self):
-        self.__running = True
-        while self.__running:
-            self.redraw()
-        print("Window closed...")
 
 
     def draw_line(self, line, fill_color="black"):
@@ -73,31 +99,64 @@ class Window:
 
 
     def _quit(self):
+        # Force quits, error: _tkinter.TclError: invalid command name ".!frame.!canvas"
         self.__running = False
         self.__root.quit()
         self.__root.destroy()
 
-    def customize_maze(self):
-        pass
+    def rerun(self):
+        if self.current_maze is not None:
+            if self.current_maze.running == False:
+                self.canvas.delete('all')
+                self.current_maze.running = True
+                self.current_maze.create_cells()
+                self.current_maze.break_enterance_and_exit_walls()
+                self.current_maze.break_walls_r(0, 0)
+                self.current_maze.reset_cells_visited()
+                self.current_maze.solve()
+                self.current_maze.running = False
 
-    def run_and_solve_maze(self):  
+    def run_and_solve_maze(self):
+        rows = 25
+        columns = 45
+        cell_x = 35
+        cell_y = 35
+        try:
+            rows = int(self.rows_entry.get())
+            if rows > 27:
+                while rows*cell_y > 945:
+                    if cell_y > 2:
+                        cell_y -=1
+                    else:
+                        break
+        except:
+            pass
+        try:
+            columns = int(self.columns_entry.get())
+            if columns > 48:
+                while columns*cell_x > 1680:
+                    if cell_x > 2:
+                        cell_x -=1
+                    else:
+                        break
+        except:
+            pass
+
+        
         if self.current_maze is None:
-            self.current_maze = Maze(25, 45, 35, self)    
+            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
+
         if self.current_maze.running == False:
             self.canvas.delete('all')
+            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
             self.current_maze.running = True
-            maze = Maze(25, 45, 35, self)
-            maze.create_cells()
-            maze.break_enterance_and_exit_walls()
-            maze.break_walls_r(0, 0)
-            maze.reset_cells_visited()
-            maze.solve()
+            self.current_maze.create_cells()
+            self.current_maze.break_enterance_and_exit_walls()
+            self.current_maze.break_walls_r(0, 0)
+            self.current_maze.reset_cells_visited()
+            self.current_maze.solve()
             self.current_maze.running = False
-            
-            
-    def enter_seed(self, seed):
-        random.seed(seed)
-
+  
 class Point:
     def __init__(self, x, y):
         self.x = x
@@ -167,21 +226,25 @@ class Cell:
             self.win.draw_line(Line(start, end), 'red2')
 
 class Maze:
-    def __init__(self, rows, columns, cell_size, win):
+    def __init__(self, rows, columns, cell_x, cell_y, win):
         self.running = False
         self.x = 20
         self.y = 0
         self.rows = rows
         self.columns = columns
-        self.cell_size = cell_size
+        self.cell_x = cell_x
+        self.cell_y = cell_y
         self.win = win
         self.cells = []
+        self.slow_undo = False
+        self.paused = False
+        random.seed(self.win.seed_entry.get())
         
     def break_enterance_and_exit_walls(self):
         first_cell = self.cells[0][0]
         first_cell.top = False
         first_cell.draw()
-
+        
         exit_cell = self.cells[-1][-1]
         exit_cell.bottom = False
         exit_cell.draw()
@@ -214,12 +277,16 @@ class Maze:
         elif direction == (1, 0):
             current_cell.bottom = False
             chosen_cell.top = False
-        
         self.cells[i][j].draw('pink')
         self.animate()
 
 
     def find_adjecent_cells(self, i, j):
+        """
+        Tries to check each direction for cells.
+        :param: (i, j) coordinates for current cell. 
+        :return: lst, all UNVISITED adjecent cells
+        """
         vals = [(-1, 0), (0, 1), (0, -1), (1, 0)]
         adjecent_cells = []
         for index in range(4):
@@ -232,12 +299,17 @@ class Maze:
 
 
     def find_open_adjecent_cells(self, i, j):
+        """
+        Finds adjecent cells and if its open returns as list of valid cells
+        :param: (i, j) coordinates for current cell
+        :return: valid(open) cells.
+        """
         valid_cells = []
-        
+       
         cells = self.find_adjecent_cells(i, j)
         for info in cells:
             cell, direction = info[0], info[1]
-
+            
             if direction == (-1, 0):
                 if not cell.bottom:
                     valid_cells.append((cell, direction))
@@ -264,6 +336,14 @@ class Maze:
 
 
     def solve_r(self, i, j):
+        """
+        recursive function to go through the maze, depth first search.
+        Starts by animating itself from its previous action. Visits current cell.
+        for each open adjecent cell check if it has been visited. if not draw and recursivelly move to cell.
+        else undo.
+        :param: (i, j) coordinates for current cell
+        :return: bool, if solvable True, else False but all my mazes are solvable :)
+        """
         self.animate()
         current_cell = self.cells[i][j]
         current_cell.visited = True
@@ -277,26 +357,30 @@ class Maze:
                     return True
                 else:
                     current_cell.draw_move(cell, direction, True)
-                    #self.animate(0.01)# for slow undo
+                    if self.slow_undo:
+                        self.animate(0.01)# for slow undo
         return False
 
     def create_cells(self):
+        self.cells = []
         cell_x, cell_y = self.x, self.y
         for i in range(self.rows):   
             for j in range(self.columns):
                 if j % self.columns == 0 :
                     self.cells.append([])
-                    cell_y += self.cell_size
+                    cell_y += self.cell_y
                     cell_x = self.x
-                self.cells[i].append(Cell(cell_x, cell_y, cell_x + self.cell_size, cell_y + self.cell_size, self.win))
-                cell_x += self.cell_size
+                self.cells[i].append(Cell(cell_x, cell_y, cell_x + self.cell_x, cell_y + self.cell_y, self.win))
+                cell_x += self.cell_x
         for row in self.cells:
             for cell in row:
                 cell.draw()
                 self.animate(0.00001)
                 
     
-    def animate(self, sleep_time=0.01):
+    def animate(self, sleep_time=0.005):
+        while self.paused:
+            sleep(0.01)
         self.win.redraw()
         time.sleep(sleep_time)
         
