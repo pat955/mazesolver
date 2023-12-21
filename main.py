@@ -47,6 +47,8 @@ class Window:
         self.run_button.pack(side="top", fill="x", pady='10')
         self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
         self.rerun_button.pack(side="top", fill="x")
+
+        #self.speed_up_button = 
         
         # self.speed_button = 0
         # self.enable_slow_undo_button = Button(self.option_frame, text='Enable slow undo')
