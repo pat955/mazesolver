@@ -1,6 +1,7 @@
 import time 
 import random
 import tkinter
+import os
 from functools import partial
 from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 
@@ -15,6 +16,7 @@ from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 
 def main():
     win = Window(900, 900)
+    win.previous()
 
 class Window:
     def __init__(self, width, height):
@@ -44,9 +46,15 @@ class Window:
         
         # Buttons and labels:
         self.run_button = Button(self.option_frame, text='Run Maze', bg='lavender', command=self.run_and_solve_maze)
-        self.run_button.pack(side="top", fill="x", pady='10')
-        self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
-        self.rerun_button.pack(side="top", fill="x")
+        self.run_button.pack(side="top", fill="x", pady=10)
+
+        #self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
+        #self.rerun_button.pack(side="top", fill="x")
+        self.previous_button = Button(self.option_frame, text='Previous Maze', bg='lavender', command=self.rerun)
+        self.previous_button.pack(side="top", fill="x")
+
+        #self.save_button = Button(self.option_frame, text='Save Maze', bg='lavender', command=self.save_maze)
+        #self.save_button.pack(side="top", fill="x", pady=10)
 
         #self.speed_up_button = 
         
@@ -102,11 +110,15 @@ class Window:
 
     def _quit(self):
         # Force quits, error: _tkinter.TclError: invalid command name ".!frame.!canvas"
+        if os.path.exists('cache.txt'):
+            os.remove('cache.txt')
         self.__running = False
         self.__root.quit()
         self.__root.destroy()
 
+
     def rerun(self):
+        #change to run previous
         if self.current_maze is not None:
             if self.current_maze.running == False:
                 self.canvas.delete('all')
@@ -118,11 +130,65 @@ class Window:
                 self.current_maze.solve()
                 self.current_maze.running = False
 
+
+    def previous(self):
+        if os.path.exists('cache.txt'):
+            with open('cache.txt', 'r') as file:
+                rows, columns, cell_x, cell_y = file.readline().split()[1:]
+                self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
+        else:
+            self.open_popup('No saved mazes')
+
+
+    def save_maze(self, prefix=''):  
+        with open('cache.txt', 'a+') as file:
+            try:
+                if self.current_maze is not None:
+                    if prefix == 'Previous: ' and len(file.read()) != 0:
+                        l = file.readlines()
+                        print(l)
+                        exit()
+                        l[0] = (prefix + str(self.current_maze)+'\n')
+                        file.writelines(l)
+                    else:
+                        file.write(prefix + str(self.current_maze)+'\n')
+            except TypeError:
+                self.open_popup('Can\'t save a non existant maze')
+                
+
+    def open_popup(self, error_text):
+        top = tkinter.Toplevel(self.__root)
+        top.geometry("350x150")
+        top.title("Error")
+        Label(top, text=error_text , bg='lavender', font="none 12 bold")
+        
+
     def run_and_solve_maze(self):
+        self.save_maze('Previous: ')
+
+        rows, columns, cell_x, cell_y = self.resize_cells()
+        
+        if self.current_maze is None:
+            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
+
+        if self.current_maze.running == False:
+            
+            self.canvas.delete('all')
+            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
+            self.current_maze.running = True
+            self.current_maze.create_cells()
+            self.current_maze.break_enterance_and_exit_walls()
+            self.current_maze.break_walls_r(0, 0)
+            self.current_maze.reset_cells_visited()
+            self.current_maze.solve()
+            self.current_maze.running = False
+
+    def resize_cells(self):
         rows = 25
         columns = 45
         cell_x = 35
         cell_y = 35
+        
         try:
             rows = int(self.rows_entry.get())
             if rows > 27:
@@ -142,23 +208,8 @@ class Window:
                     else:
                         break
         except:
-            pass
-
-        
-        if self.current_maze is None:
-            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
-
-        if self.current_maze.running == False:
-            self.canvas.delete('all')
-            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
-            self.current_maze.running = True
-            self.current_maze.create_cells()
-            self.current_maze.break_enterance_and_exit_walls()
-            self.current_maze.break_walls_r(0, 0)
-            self.current_maze.reset_cells_visited()
-            self.current_maze.solve()
-            self.current_maze.running = False
-  
+            pass    
+        return rows, columns, cell_x, cell_y
 class Point:
     def __init__(self, x, y):
         self.x = x
@@ -241,7 +292,11 @@ class Maze:
         self.slow_undo = False
         self.paused = False
         random.seed(self.win.seed_entry.get())
-        
+    
+    def __repr__(self):
+        return f'{self.rows}, {self.columns}, {self.cell_x}, {self.cell_y}'
+
+
     def break_enterance_and_exit_walls(self):
         first_cell = self.cells[0][0]
         first_cell.top = False
