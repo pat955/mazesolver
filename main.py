@@ -12,7 +12,7 @@ from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 # make the maze resize according to size
 # Fix error when force quitting
 # Function queue
-# resize to fit everything so 1000 cells are possible.
+# move window, cell, point and line to another file for cleanliness
 
 def main():
     win = Window(900, 900)
@@ -115,20 +115,6 @@ class Window:
         self.__running = False
         self.__root.quit()
         self.__root.destroy()
-
-
-    def rerun(self):
-        #change to run previous
-        if self.current_maze is not None:
-            if self.current_maze.running == False:
-                self.canvas.delete('all')
-                self.current_maze.running = True
-                self.current_maze.create_cells()
-                self.current_maze.break_enterance_and_exit_walls()
-                self.current_maze.break_walls_r(0, 0)
-                self.current_maze.reset_cells_visited()
-                self.current_maze.solve()
-                self.current_maze.running = False
 
 
     def previous(self):
