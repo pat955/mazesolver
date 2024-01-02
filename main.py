@@ -16,7 +16,7 @@ from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 
 def main():
     win = Window(900, 900)
-    win.previous()
+    
 
 class Window:
     def __init__(self, width, height):
@@ -50,7 +50,7 @@ class Window:
 
         #self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
         #self.rerun_button.pack(side="top", fill="x")
-        self.previous_button = Button(self.option_frame, text='Previous Maze', bg='lavender', command=self.rerun)
+        self.previous_button = Button(self.option_frame, text='Previous Maze', bg='lavender', command=self.previous)
         self.previous_button.pack(side="top", fill="x")
 
         #self.save_button = Button(self.option_frame, text='Save Maze', bg='lavender', command=self.save_maze)
@@ -134,47 +134,50 @@ class Window:
     def previous(self):
         if os.path.exists('cache.txt'):
             with open('cache.txt', 'r') as file:
-                rows, columns, cell_x, cell_y = file.readline().split()[1:]
-                self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
+                l = file.readlines()
+                try:
+                    rows, columns, cell_x, cell_y = [char.strip(',') for char in l[-2].split()]
+                except:
+                    rows, columns, cell_x, cell_y = [char.strip(',') for char in l[0].split()]
+                self.current_maze = Maze(int(rows), int(columns), int(cell_x), int(cell_y), self)
+                print(self.current_maze)
         else:
-            self.open_popup('No saved mazes')
+            self.error_message('No saved mazes')
+        self.run_and_solve_maze(True)
 
 
-    def save_maze(self, prefix=''):  
+    def save_maze(self):  
         with open('cache.txt', 'a+') as file:
             try:
                 if self.current_maze is not None:
-                    if prefix == 'Previous: ' and len(file.read()) != 0:
-                        l = file.readlines()
-                        print(l)
-                        exit()
-                        l[0] = (prefix + str(self.current_maze)+'\n')
-                        file.writelines(l)
+                    maze_str = str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)+'\n'
+                    if len(file.read()) != 0:
+                        if file.readlines[-1] == maze_str:
+                            file.writeline(maze_str)
                     else:
-                        file.write(prefix + str(self.current_maze)+'\n')
+                        file.write(maze_str)
             except TypeError:
-                self.open_popup('Can\'t save a non existant maze')
-                
+                self.error_message('No maze to save!')
 
-    def open_popup(self, error_text):
-        top = tkinter.Toplevel(self.__root)
-        top.geometry("350x150")
-        top.title("Error")
-        Label(top, text=error_text , bg='lavender', font="none 12 bold")
+
+    def error_message(self, error_text):
+        T = tkinter.Label(self.canvas, text=f'Error: {error_text}', bg='white', font='Calibri 15')
+        T.pack(side='bottom')
+    
         
 
-    def run_and_solve_maze(self):
-        self.save_maze('Previous: ')
-
-        rows, columns, cell_x, cell_y = self.resize_cells()
+    def run_and_solve_maze(self, prev=False):
+        if not prev:
+            rows, columns, cell_x, cell_y = self.resize_cells()
         
         if self.current_maze is None:
             self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
-
+        
         if self.current_maze.running == False:
             
-            self.canvas.delete('all')
-            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
+            self.canvas.delete(tkinter.ALL)
+            if not prev:
+                self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
             self.current_maze.running = True
             self.current_maze.create_cells()
             self.current_maze.break_enterance_and_exit_walls()
@@ -182,8 +185,11 @@ class Window:
             self.current_maze.reset_cells_visited()
             self.current_maze.solve()
             self.current_maze.running = False
+        self.save_maze()
+        
 
     def resize_cells(self):
+
         rows = 25
         columns = 45
         cell_x = 35
