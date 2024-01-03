@@ -143,7 +143,8 @@ class Window:
                     else:
                         file.write(maze_str)
             except TypeError:
-                self.error_message('No maze to save!')
+                #self.error_message('No maze to save!')
+                pass
 
 
     def error_message(self, error_text):
