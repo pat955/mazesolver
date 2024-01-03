@@ -1,5 +1,6 @@
-# mazesolver
-Practicing making algorithms and using tkinter. 
+# Maze solver
+This project is mostly to practice making algorithms, using tkinter library and practice using branches in github. 
 
-# GIF
+# Default maze showcase
 ![](https://github.com/pat955/maze-solver/blob/user_input/default_maze_showcase.gif)
+Sorry for the quality! 
