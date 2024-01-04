@@ -136,12 +136,8 @@ class Window:
         with open('cache.txt', 'a+') as file:
             try:
                 if self.current_maze is not None:
-                    maze_str = str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)+'\n'
-                    if len(file.read()) != 0:
-                        if file.readlines[-1] == maze_str:
-                            file.writeline(maze_str)
-                    else:
-                        file.write(maze_str)
+                    maze_str = ', '.join([str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)])
+                    file.write(maze_str + '\n')
             except TypeError:
                 #self.error_message('No maze to save!')
                 pass
