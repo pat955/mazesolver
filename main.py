@@ -4,6 +4,7 @@ import tkinter
 import os
 from functools import partial
 from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
+from tkinter import ttk
 
 # Add documentation 
 # Add more interaction
@@ -13,10 +14,11 @@ from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 # Fix error when force quitting
 # Function queue
 # move window, cell, point and line to another file for cleanliness
+### IDEA: make a game where the player has to stop the robot from solving the maze, blocking off "doors"
 
 def main():
     win = Window(900, 900)
-    
+
 
 class Window:
     def __init__(self, width, height):
@@ -33,7 +35,13 @@ class Window:
         self.__root.rowconfigure(0, weight=1)
         self.current_maze = None
 
-        # self.maze_settings = {self.current_maze.rows:25, self.current_maze.colums:45, self.current_maze.cell_size:0, self.current_maze.slow_undo:0}
+        # settings, checkboxes
+        self.grid_animation = False
+        self.maze_making_animation = False
+        self.slow_undo = False
+        self.bfs = False
+        self.paused = False
+
         # Frames, canvas:
         self.main_frame = Frame(self.__root, bg='white')
         self.main_frame.grid(column=0, row=0, sticky="nsew")
@@ -48,8 +56,6 @@ class Window:
         self.run_button = Button(self.option_frame, text='Run Maze', bg='lavender', command=self.run_and_solve_maze)
         self.run_button.pack(side="top", fill="x", pady=10)
 
-        #self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
-        #self.rerun_button.pack(side="top", fill="x")
         self.previous_button = Button(self.option_frame, text='Previous Maze', bg='lavender', command=self.previous)
         self.previous_button.pack(side="top", fill="x")
 
@@ -57,16 +63,9 @@ class Window:
         #self.save_button.pack(side="top", fill="x", pady=10)
 
         #self.speed_up_button = 
-        
-        # self.speed_button = 0
-        # self.enable_slow_undo_button = Button(self.option_frame, text='Enable slow undo')
-        """
-        self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
-        self.pause_button.pack(side="top", fill="x", pady='5')
-        self.unpause_button = Button(self.option_frame, text='Unpause', bg='lavender', command=self.unpause)
-        """
-        #self.unpause_button.pack(side="top", fill="x", pady='5')
-        
+
+        #self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
+        #self.pause_button.pack(side="top", fill="x", pady='5')
         
         self.seed_label = Label(self.option_frame, text='Seed', bg='white')
         self.seed_label.pack(side="top", fill="x")
@@ -84,19 +83,37 @@ class Window:
         self.columns_entry = Entry(self.option_frame, bg='lavender')
         self.columns_entry.pack(side="top", fill="x")
 
+        self.animate_checkbox = tkinter.Checkbutton(self.option_frame, text='Grid cell animation', bg='white', highlightthickness=0, pady=10, activebackground="white", anchor= 'w',command=self.enable_grid_animation)
+        self.animate_checkbox.pack(side="top", fill="x")
+        self.animate_maze_making_checkbox = tkinter.Checkbutton(self.option_frame, text='Maze making animation', bg='white', highlightthickness=0, activebackground="white",anchor= 'w', command=self.enable_maze_making_animation)
+        self.animate_maze_making_checkbox.pack(side="top", fill="x")
+        self.slow_undo_checkbox = tkinter.Checkbutton(self.option_frame, text='Slow undo', bg='white', highlightthickness=0, activebackground="white", pady=10, anchor= 'w', command=self.enable_slow_undo)
+        self.slow_undo_checkbox.pack(side="top", fill="x")
+
         
+
+        #self.bfs_checkbox = tkinter.Checkbutton(self.option_frame, text='Breadth first search', bg='white', highlightthickness=0, activebackground="white", anchor= 'w', command=self.enable_bfs)
+        #self.bfs_checkbox.pack(side="top", fill="x")
         self.__root.mainloop()
         
-        #self.skip_button = Button(self.option_frame, text='Skip', bg='lavender', command=skip)
-        
-        #self.__root.bind("<Configure>", self.resize)
-        """
-        excess parts, no longer needed, but could be useful:
-        #self.reset_button = Button(self.option_frame, text='Reset', bg='lavender', command=self.reset_maze)    
-        #self.reset_button.pack(side="top", fill="x")
-        #self.exit_button = Button(self.option_frame, text='Force quit', bg='lavender', command=self._quit)
-        #self.exit_button.pack(side="top", fill="x")
-        """
+    def enable_grid_animation(self):
+        self.grid_animation = True
+
+
+    def enable_slow_undo(self):
+        self.slow_undo = True
+
+
+    def enable_maze_making_animation(self):
+        self.maze_making_animation = True
+
+
+    def enable_bfs(self):
+        self.bfs = True
+
+    def pause(self):
+        self.paused = True
+
 
     def redraw(self):
         # Updates the screen to match whats happening
@@ -126,29 +143,31 @@ class Window:
                 except:
                     rows, columns, cell_x, cell_y = [char.strip(',') for char in l[0].split()]
                 self.current_maze = Maze(int(rows), int(columns), int(cell_x), int(cell_y), self)
-                print(self.current_maze)
+                self.run_and_solve_maze(True)
         else:
             self.error_message('No saved mazes')
-        self.run_and_solve_maze(True)
+            
+    def get_prev_maze(self):
+        if os.path.exists('cache.txt'):
+            with open('cache.txt', 'r') as file:
+                return file.readlines()[-1]
+        return None
 
-
-    def save_maze(self):  
+    def save_maze(self):
+        prev_maze = self.get_prev_maze()
+         
         with open('cache.txt', 'a+') as file:
-            try:
-                if self.current_maze is not None:
-                    maze_str = ', '.join([str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)])
-                    file.write(maze_str + '\n')
-            except TypeError:
-                #self.error_message('No maze to save!')
-                pass
-
+            
+            maze_str = ', '.join([str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)]) + '\n'
+            if prev_maze != maze_str:
+                file.write(maze_str) 
+                
 
     def error_message(self, error_text):
         T = tkinter.Label(self.canvas, text=f'Error: {error_text}', bg='white', font='Calibri 15')
         T.pack(side='bottom')
     
         
-
     def run_and_solve_maze(self, prev=False):
         if not prev:
             rows, columns, cell_x, cell_y = self.resize_cells()
@@ -157,8 +176,8 @@ class Window:
             self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
         
         if self.current_maze.running == False:
-            
             self.canvas.delete(tkinter.ALL)
+
             if not prev:
                 self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
             self.current_maze.running = True
@@ -228,6 +247,7 @@ class Cell:
         self.win = win
         self.visited = False
         
+        
     def __repr__(self):
         return f'|({self.x1}, {self.y1}), ({self.x2}, {self.y2})|'
 
@@ -278,9 +298,10 @@ class Maze:
         self.cell_y = cell_y
         self.win = win
         self.cells = []
-        self.slow_undo = False
         self.paused = False
-        random.seed(self.win.seed_entry.get())
+        if self.win.seed_entry.get():
+            random.seed(self.win.seed_entry.get())
+        
     
     def __repr__(self):
         return f'{self.rows}, {self.columns}, {self.cell_x}, {self.cell_y}'
@@ -294,20 +315,35 @@ class Maze:
         exit_cell = self.cells[-1][-1]
         exit_cell.bottom = False
         exit_cell.draw()
-
-
+        
     def break_walls_r(self, i, j):
         self.cells[i][j].visited = True
         while True:
             to_visit = []
             adjecent_cells = self.find_adjecent_cells(i, j)
-            if adjecent_cells == []:
+            if not adjecent_cells:
                 self.cells[i][j].draw()
                 return
             chosen_cell = random.choice(adjecent_cells)
             self.break_adjecent_walls(i, j, chosen_cell[0], chosen_cell[1])
             self.break_walls_r(i + chosen_cell[1][0], j + chosen_cell[1][1])        
             
+
+    def break_walls_bfs(self, i, j):
+        # work in progress
+        self.cells[i][j].visited = True
+        to_visit = []
+        to_visit.append(self.cells[i][j])
+        while to_visit:
+            to_visit.pop().visited = True
+            adjecent_cells = self.find_adjecent_cells(i, j)
+            if not adjecent_cells:
+                self.cells[i][j].draw()
+                return
+            for neighbor, direction in adjecent_cells:
+                if not neighbor.visited and neighbor not in to_visit:
+                    to_visit.append(neighbor)
+             
 
     def break_adjecent_walls(self, i, j, chosen_cell, direction):
         current_cell = self.cells[i][j]
@@ -324,7 +360,8 @@ class Maze:
             current_cell.bottom = False
             chosen_cell.top = False
         self.cells[i][j].draw('pink')
-        self.animate()
+        if self.win.maze_making_animation:
+            self.animate()
 
 
     def find_adjecent_cells(self, i, j):
@@ -403,9 +440,10 @@ class Maze:
                     return True
                 else:
                     current_cell.draw_move(cell, direction, True)
-                    if self.slow_undo:
-                        self.animate(0.01)# for slow undo
+                    if self.win.slow_undo:
+                        self.animate(0.01)
         return False
+
 
     def create_cells(self):
         self.cells = []
@@ -418,15 +456,16 @@ class Maze:
                     cell_x = self.x
                 self.cells[i].append(Cell(cell_x, cell_y, cell_x + self.cell_x, cell_y + self.cell_y, self.win))
                 cell_x += self.cell_x
+    
         for row in self.cells:
             for cell in row:
+                
                 cell.draw()
-                self.animate(0.00001)
+                if self.win.grid_animation:
+                    self.animate(0.00001)
                 
     
     def animate(self, sleep_time=0.005):
-        while self.paused:
-            sleep(0.01)
         self.win.redraw()
         time.sleep(sleep_time)
         
