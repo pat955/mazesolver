@@ -4,6 +4,7 @@ import tkinter
 import os
 from functools import partial
 from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
+from tkinter import ttk
 
 # Add documentation 
 # Add more interaction
@@ -32,6 +33,10 @@ class Window:
         self.__root.columnconfigure(1, weight=0)
         self.__root.rowconfigure(0, weight=1)
         self.current_maze = None
+        # settings, checkboxes
+        self.grid_animation = False
+        self.maze_making_animation = False
+        self.slow_undo = False
 
         # self.maze_settings = {self.current_maze.rows:25, self.current_maze.colums:45, self.current_maze.cell_size:0, self.current_maze.slow_undo:0}
         # Frames, canvas:
@@ -59,7 +64,6 @@ class Window:
         #self.speed_up_button = 
         
         # self.speed_button = 0
-        # self.enable_slow_undo_button = Button(self.option_frame, text='Enable slow undo')
         """
         self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
         self.pause_button.pack(side="top", fill="x", pady='5')
@@ -84,12 +88,17 @@ class Window:
         self.columns_entry = Entry(self.option_frame, bg='lavender')
         self.columns_entry.pack(side="top", fill="x")
 
-        
+        self.animate_checkbox = tkinter.Checkbutton(self.option_frame, text='Grid cell animation', bg='white', highlightthickness=0, pady=10, activebackground="white", anchor= 'w',command=self.enable_grid_animation)
+        self.animate_checkbox.pack(side="top", fill="x")
+        self.animate_maze_making_checkbox = tkinter.Checkbutton(self.option_frame, text='Maze making animation', bg='white', highlightthickness=0, activebackground="white",anchor= 'w', command=self.enable_maze_making_animation)
+        self.animate_maze_making_checkbox.pack(side="top", fill="x")
+        self.slow_undo_checkbox =tkinter.Checkbutton(self.option_frame, text='Slow undo', bg='white', highlightthickness=0, activebackground="white", pady=10, anchor= 'w', command=self.enable_slow_undo)
+        self.slow_undo_checkbox.pack(side="top", fill="x")
         self.__root.mainloop()
+        
         
         #self.skip_button = Button(self.option_frame, text='Skip', bg='lavender', command=skip)
         
-        #self.__root.bind("<Configure>", self.resize)
         """
         excess parts, no longer needed, but could be useful:
         #self.reset_button = Button(self.option_frame, text='Reset', bg='lavender', command=self.reset_maze)    
@@ -97,6 +106,15 @@ class Window:
         #self.exit_button = Button(self.option_frame, text='Force quit', bg='lavender', command=self._quit)
         #self.exit_button.pack(side="top", fill="x")
         """
+    def enable_grid_animation(self):
+        self.grid_animation = True
+
+
+    def enable_slow_undo(self):
+        self.slow_undo = True
+
+    def enable_maze_making_animation(self):
+        self.maze_making_animation = True
 
     def redraw(self):
         # Updates the screen to match whats happening
@@ -228,6 +246,7 @@ class Cell:
         self.win = win
         self.visited = False
         
+        
     def __repr__(self):
         return f'|({self.x1}, {self.y1}), ({self.x2}, {self.y2})|'
 
@@ -278,9 +297,10 @@ class Maze:
         self.cell_y = cell_y
         self.win = win
         self.cells = []
-        self.slow_undo = False
         self.paused = False
-        random.seed(self.win.seed_entry.get())
+        if self.win.seed_entry.get():
+            random.seed(self.win.seed_entry.get())
+        
     
     def __repr__(self):
         return f'{self.rows}, {self.columns}, {self.cell_x}, {self.cell_y}'
@@ -324,7 +344,8 @@ class Maze:
             current_cell.bottom = False
             chosen_cell.top = False
         self.cells[i][j].draw('pink')
-        self.animate()
+        if self.win.maze_making_animation:
+            self.animate()
 
 
     def find_adjecent_cells(self, i, j):
@@ -403,8 +424,8 @@ class Maze:
                     return True
                 else:
                     current_cell.draw_move(cell, direction, True)
-                    if self.slow_undo:
-                        self.animate(0.01)# for slow undo
+                    if self.win.slow_undo:
+                        self.animate(0.01)
         return False
 
     def create_cells(self):
@@ -418,10 +439,12 @@ class Maze:
                     cell_x = self.x
                 self.cells[i].append(Cell(cell_x, cell_y, cell_x + self.cell_x, cell_y + self.cell_y, self.win))
                 cell_x += self.cell_x
+    
         for row in self.cells:
             for cell in row:
                 cell.draw()
-                self.animate(0.00001)
+                if self.win.grid_animation:
+                    self.animate(0.00001)
                 
     
     def animate(self, sleep_time=0.005):
