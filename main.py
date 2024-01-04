@@ -14,10 +14,11 @@ from tkinter import ttk
 # Fix error when force quitting
 # Function queue
 # move window, cell, point and line to another file for cleanliness
+### IDEA: make a game where the player has to stop the robot from solving the maze, blocking off "doors"
 
 def main():
     win = Window(900, 900)
-    
+
 
 class Window:
     def __init__(self, width, height):
@@ -33,13 +34,14 @@ class Window:
         self.__root.columnconfigure(1, weight=0)
         self.__root.rowconfigure(0, weight=1)
         self.current_maze = None
+
         # settings, checkboxes
         self.grid_animation = False
         self.maze_making_animation = False
         self.slow_undo = False
         self.bfs = False
+        self.paused = False
 
-        # self.maze_settings = {self.current_maze.rows:25, self.current_maze.colums:45, self.current_maze.cell_size:0, self.current_maze.slow_undo:0}
         # Frames, canvas:
         self.main_frame = Frame(self.__root, bg='white')
         self.main_frame.grid(column=0, row=0, sticky="nsew")
@@ -54,8 +56,6 @@ class Window:
         self.run_button = Button(self.option_frame, text='Run Maze', bg='lavender', command=self.run_and_solve_maze)
         self.run_button.pack(side="top", fill="x", pady=10)
 
-        #self.rerun_button = Button(self.option_frame, text='Rerun', bg='lavender', command=self.rerun)
-        #self.rerun_button.pack(side="top", fill="x")
         self.previous_button = Button(self.option_frame, text='Previous Maze', bg='lavender', command=self.previous)
         self.previous_button.pack(side="top", fill="x")
 
@@ -63,13 +63,10 @@ class Window:
         #self.save_button.pack(side="top", fill="x", pady=10)
 
         #self.speed_up_button = 
-        
-        # self.speed_button = 0
-        """
+
         self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
         self.pause_button.pack(side="top", fill="x", pady='5')
-        self.unpause_button = Button(self.option_frame, text='Unpause', bg='lavender', command=self.unpause)
-        """
+
         #self.unpause_button.pack(side="top", fill="x", pady='5')
         
         
@@ -96,21 +93,12 @@ class Window:
         self.slow_undo_checkbox = tkinter.Checkbutton(self.option_frame, text='Slow undo', bg='white', highlightthickness=0, activebackground="white", pady=10, anchor= 'w', command=self.enable_slow_undo)
         self.slow_undo_checkbox.pack(side="top", fill="x")
 
+        
+
         #self.bfs_checkbox = tkinter.Checkbutton(self.option_frame, text='Breadth first search', bg='white', highlightthickness=0, activebackground="white", anchor= 'w', command=self.enable_bfs)
         #self.bfs_checkbox.pack(side="top", fill="x")
-
         self.__root.mainloop()
         
-        
-        #self.skip_button = Button(self.option_frame, text='Skip', bg='lavender', command=skip)
-        
-        """
-        excess parts, no longer needed, but could be useful:
-        #self.reset_button = Button(self.option_frame, text='Reset', bg='lavender', command=self.reset_maze)    
-        #self.reset_button.pack(side="top", fill="x")
-        #self.exit_button = Button(self.option_frame, text='Force quit', bg='lavender', command=self._quit)
-        #self.exit_button.pack(side="top", fill="x")
-        """
     def enable_grid_animation(self):
         self.grid_animation = True
 
@@ -122,8 +110,13 @@ class Window:
     def enable_maze_making_animation(self):
         self.maze_making_animation = True
 
+
     def enable_bfs(self):
         self.bfs = True
+
+    def pause(self):
+        self.paused = True
+
 
     def redraw(self):
         # Updates the screen to match whats happening
@@ -470,14 +463,13 @@ class Maze:
     
         for row in self.cells:
             for cell in row:
+                
                 cell.draw()
                 if self.win.grid_animation:
                     self.animate(0.00001)
                 
     
     def animate(self, sleep_time=0.005):
-        while self.paused:
-            sleep(0.01)
         self.win.redraw()
         time.sleep(sleep_time)
         
