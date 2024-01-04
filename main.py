@@ -37,6 +37,7 @@ class Window:
         self.grid_animation = False
         self.maze_making_animation = False
         self.slow_undo = False
+        self.bfs = False
 
         # self.maze_settings = {self.current_maze.rows:25, self.current_maze.colums:45, self.current_maze.cell_size:0, self.current_maze.slow_undo:0}
         # Frames, canvas:
@@ -92,8 +93,12 @@ class Window:
         self.animate_checkbox.pack(side="top", fill="x")
         self.animate_maze_making_checkbox = tkinter.Checkbutton(self.option_frame, text='Maze making animation', bg='white', highlightthickness=0, activebackground="white",anchor= 'w', command=self.enable_maze_making_animation)
         self.animate_maze_making_checkbox.pack(side="top", fill="x")
-        self.slow_undo_checkbox =tkinter.Checkbutton(self.option_frame, text='Slow undo', bg='white', highlightthickness=0, activebackground="white", pady=10, anchor= 'w', command=self.enable_slow_undo)
+        self.slow_undo_checkbox = tkinter.Checkbutton(self.option_frame, text='Slow undo', bg='white', highlightthickness=0, activebackground="white", pady=10, anchor= 'w', command=self.enable_slow_undo)
         self.slow_undo_checkbox.pack(side="top", fill="x")
+
+        #self.bfs_checkbox = tkinter.Checkbutton(self.option_frame, text='Breadth first search', bg='white', highlightthickness=0, activebackground="white", anchor= 'w', command=self.enable_bfs)
+        #self.bfs_checkbox.pack(side="top", fill="x")
+
         self.__root.mainloop()
         
         
@@ -113,8 +118,12 @@ class Window:
     def enable_slow_undo(self):
         self.slow_undo = True
 
+
     def enable_maze_making_animation(self):
         self.maze_making_animation = True
+
+    def enable_bfs(self):
+        self.bfs = True
 
     def redraw(self):
         # Updates the screen to match whats happening
@@ -166,26 +175,29 @@ class Window:
         T.pack(side='bottom')
     
         
-
     def run_and_solve_maze(self, prev=False):
+        cm = self.current_maze
         if not prev:
             rows, columns, cell_x, cell_y = self.resize_cells()
         
-        if self.current_maze is None:
-            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
+        if cm is None:
+            cm = Maze(rows, columns, cell_x, cell_y, self)      
         
-        if self.current_maze.running == False:
+        if cm.running == False:
             
             self.canvas.delete(tkinter.ALL)
             if not prev:
-                self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
-            self.current_maze.running = True
-            self.current_maze.create_cells()
-            self.current_maze.break_enterance_and_exit_walls()
-            self.current_maze.break_walls_r(0, 0)
-            self.current_maze.reset_cells_visited()
-            self.current_maze.solve()
-            self.current_maze.running = False
+                cm = Maze(rows, columns, cell_x, cell_y, self)
+            cm.running = True
+            cm.create_cells()
+            cm.break_enterance_and_exit_walls()
+            cm.break_walls_r(0, 0)
+            cm.reset_cells_visited()
+            if self.bfs:
+                cm.solve_bfs()
+            else:
+                cm.solve()
+            cm.running = False
         self.save_maze()
         
 
@@ -314,20 +326,35 @@ class Maze:
         exit_cell = self.cells[-1][-1]
         exit_cell.bottom = False
         exit_cell.draw()
-
-
+        
     def break_walls_r(self, i, j):
         self.cells[i][j].visited = True
         while True:
             to_visit = []
             adjecent_cells = self.find_adjecent_cells(i, j)
-            if adjecent_cells == []:
+            if not adjecent_cells:
                 self.cells[i][j].draw()
                 return
             chosen_cell = random.choice(adjecent_cells)
             self.break_adjecent_walls(i, j, chosen_cell[0], chosen_cell[1])
             self.break_walls_r(i + chosen_cell[1][0], j + chosen_cell[1][1])        
             
+
+    def break_walls_bfs(self, i, j):
+        # work in progress
+        self.cells[i][j].visited = True
+        to_visit = []
+        to_visit.append(self.cells[i][j])
+        while to_visit:
+            to_visit.pop().visited = True
+            adjecent_cells = self.find_adjecent_cells(i, j)
+            if not adjecent_cells:
+                self.cells[i][j].draw()
+                return
+            for neighbor, direction in adjecent_cells:
+                if not neighbor.visited and neighbor not in to_visit:
+                    to_visit.append(neighbor)
+             
 
     def break_adjecent_walls(self, i, j, chosen_cell, direction):
         current_cell = self.cells[i][j]
@@ -427,6 +454,7 @@ class Maze:
                     if self.win.slow_undo:
                         self.animate(0.01)
         return False
+
 
     def create_cells(self):
         self.cells = []
