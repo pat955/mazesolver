@@ -64,11 +64,8 @@ class Window:
 
         #self.speed_up_button = 
 
-        self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
-        self.pause_button.pack(side="top", fill="x", pady='5')
-
-        #self.unpause_button.pack(side="top", fill="x", pady='5')
-        
+        #self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
+        #self.pause_button.pack(side="top", fill="x", pady='5')
         
         self.seed_label = Label(self.option_frame, text='Seed', bg='white')
         self.seed_label.pack(side="top", fill="x")
@@ -146,22 +143,25 @@ class Window:
                 except:
                     rows, columns, cell_x, cell_y = [char.strip(',') for char in l[0].split()]
                 self.current_maze = Maze(int(rows), int(columns), int(cell_x), int(cell_y), self)
-                print(self.current_maze)
+                self.run_and_solve_maze(True)
         else:
             self.error_message('No saved mazes')
-        self.run_and_solve_maze(True)
+            
+    def get_prev_maze(self):
+        if os.path.exists('cache.txt'):
+            with open('cache.txt', 'r') as file:
+                return file.readlines()[-1]
+        return None
 
-
-    def save_maze(self):  
+    def save_maze(self):
+        prev_maze = self.get_prev_maze()
+         
         with open('cache.txt', 'a+') as file:
-            try:
-                if self.current_maze is not None:
-                    maze_str = ', '.join([str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)])
-                    file.write(maze_str + '\n')
-            except TypeError:
-                #self.error_message('No maze to save!')
-                pass
-
+            
+            maze_str = ', '.join([str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)]) + '\n'
+            if prev_maze != maze_str:
+                file.write(maze_str) 
+                
 
     def error_message(self, error_text):
         T = tkinter.Label(self.canvas, text=f'Error: {error_text}', bg='white', font='Calibri 15')
@@ -169,28 +169,24 @@ class Window:
     
         
     def run_and_solve_maze(self, prev=False):
-        cm = self.current_maze
         if not prev:
             rows, columns, cell_x, cell_y = self.resize_cells()
         
-        if cm is None:
-            cm = Maze(rows, columns, cell_x, cell_y, self)      
+        if self.current_maze is None:
+            self.current_maze = Maze(rows, columns, cell_x, cell_y, self)      
         
-        if cm.running == False:
-            
+        if self.current_maze.running == False:
             self.canvas.delete(tkinter.ALL)
+
             if not prev:
-                cm = Maze(rows, columns, cell_x, cell_y, self)
-            cm.running = True
-            cm.create_cells()
-            cm.break_enterance_and_exit_walls()
-            cm.break_walls_r(0, 0)
-            cm.reset_cells_visited()
-            if self.bfs:
-                cm.solve_bfs()
-            else:
-                cm.solve()
-            cm.running = False
+                self.current_maze = Maze(rows, columns, cell_x, cell_y, self)
+            self.current_maze.running = True
+            self.current_maze.create_cells()
+            self.current_maze.break_enterance_and_exit_walls()
+            self.current_maze.break_walls_r(0, 0)
+            self.current_maze.reset_cells_visited()
+            self.current_maze.solve()
+            self.current_maze.running = False
         self.save_maze()
         
 
