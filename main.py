@@ -7,13 +7,13 @@ from tkinter import Tk, BOTH, Canvas, Button, Frame, Entry, Label
 from tkinter import ttk
 
 # Add documentation 
-# Add more interaction
-# Clean code up----------------------------------------------
-# Add customization, rows, columns, speed
-# make the maze resize according to size
-# Fix error when force quitting
-# Function queue
+# Clean code up
+# Add customization, speed, pause, color?
 # move window, cell, point and line to another file for cleanliness
+# SNAKE MODE!
+# Make it a game where the user chooses directions
+# Allow the user to race an algorithm
+# Make it 3 dimensional
 ### IDEA: make a game where the player has to stop the robot from solving the maze, blocking off "doors"
 
 def main():
@@ -61,11 +61,12 @@ class Window:
 
         #self.save_button = Button(self.option_frame, text='Save Maze', bg='lavender', command=self.save_maze)
         #self.save_button.pack(side="top", fill="x", pady=10)
-
+        
+        
         #self.speed_up_button = 
 
         #self.pause_button = Button(self.option_frame, text='Pause', bg='lavender', command=self.pause)
-        #self.pause_button.pack(side="top", fill="x", pady='5')
+        #self.pause_button.pack(side="top", fill="x", pady=10)
         
         self.seed_label = Label(self.option_frame, text='Seed', bg='white')
         self.seed_label.pack(side="top", fill="x")
@@ -82,20 +83,23 @@ class Window:
         self.columns_label.pack(side="top", fill="x")
         self.columns_entry = Entry(self.option_frame, bg='lavender')
         self.columns_entry.pack(side="top", fill="x")
-
+        
+        # Checkbox buttons
         self.animate_checkbox = tkinter.Checkbutton(self.option_frame, text='Grid cell animation', bg='white', highlightthickness=0, pady=10, activebackground="white", anchor= 'w',command=self.enable_grid_animation)
         self.animate_checkbox.pack(side="top", fill="x")
+        
         self.animate_maze_making_checkbox = tkinter.Checkbutton(self.option_frame, text='Maze making animation', bg='white', highlightthickness=0, activebackground="white",anchor= 'w', command=self.enable_maze_making_animation)
         self.animate_maze_making_checkbox.pack(side="top", fill="x")
+        
         self.slow_undo_checkbox = tkinter.Checkbutton(self.option_frame, text='Slow undo', bg='white', highlightthickness=0, activebackground="white", pady=10, anchor= 'w', command=self.enable_slow_undo)
         self.slow_undo_checkbox.pack(side="top", fill="x")
 
-        
 
         #self.bfs_checkbox = tkinter.Checkbutton(self.option_frame, text='Breadth first search', bg='white', highlightthickness=0, activebackground="white", anchor= 'w', command=self.enable_bfs)
         #self.bfs_checkbox.pack(side="top", fill="x")
         self.__root.mainloop()
         
+
     def enable_grid_animation(self):
         self.grid_animation = True
 
@@ -110,6 +114,7 @@ class Window:
 
     def enable_bfs(self):
         self.bfs = True
+
 
     def pause(self):
         self.paused = True
@@ -146,18 +151,19 @@ class Window:
                 self.run_and_solve_maze(True)
         else:
             self.error_message('No saved mazes')
-            
+
+
     def get_prev_maze(self):
         if os.path.exists('cache.txt'):
             with open('cache.txt', 'r') as file:
                 return file.readlines()[-1]
         return None
 
+
     def save_maze(self):
         prev_maze = self.get_prev_maze()
          
         with open('cache.txt', 'a+') as file:
-            
             maze_str = ', '.join([str(self.current_maze.rows), str(self.current_maze.columns), str(self.current_maze.cell_x), str(self.current_maze.cell_y)]) + '\n'
             if prev_maze != maze_str:
                 file.write(maze_str) 
@@ -192,8 +198,8 @@ class Window:
 
     def resize_cells(self):
 
-        rows = 25
-        columns = 45
+        rows = 26
+        columns = 48
         cell_x = 35
         cell_y = 35
         
@@ -218,6 +224,8 @@ class Window:
         except:
             pass    
         return rows, columns, cell_x, cell_y
+
+
 class Point:
     def __init__(self, x, y):
         self.x = x
@@ -316,6 +324,7 @@ class Maze:
         exit_cell.bottom = False
         exit_cell.draw()
         
+
     def break_walls_r(self, i, j):
         self.cells[i][j].visited = True
         while True:
@@ -327,22 +336,6 @@ class Maze:
             chosen_cell = random.choice(adjecent_cells)
             self.break_adjecent_walls(i, j, chosen_cell[0], chosen_cell[1])
             self.break_walls_r(i + chosen_cell[1][0], j + chosen_cell[1][1])        
-            
-
-    def break_walls_bfs(self, i, j):
-        # work in progress
-        self.cells[i][j].visited = True
-        to_visit = []
-        to_visit.append(self.cells[i][j])
-        while to_visit:
-            to_visit.pop().visited = True
-            adjecent_cells = self.find_adjecent_cells(i, j)
-            if not adjecent_cells:
-                self.cells[i][j].draw()
-                return
-            for neighbor, direction in adjecent_cells:
-                if not neighbor.visited and neighbor not in to_visit:
-                    to_visit.append(neighbor)
              
 
     def break_adjecent_walls(self, i, j, chosen_cell, direction):
@@ -444,6 +437,30 @@ class Maze:
                         self.animate(0.01)
         return False
 
+    def solve_bfs(self):
+        self.animate()
+        current_cell = self.cells[i][j]
+        current_cell.visited = True
+        to_visit = []
+        #####????
+        if current_cell == self.cells[-1][-1]:
+            return True
+        valid_cells = self.find_open_adjecent_cells(i, j)
+        for cell, direction in valid_cells:
+            if not cell.visited:
+                current_cell.draw_move(cell, direction)
+                if self.solve_r(i+direction[0],j+direction[1]):
+                    return True
+                else:
+                    current_cell.draw_move(cell, direction, True)
+                    if self.win.slow_undo:
+                        self.animate(0.01)
+        return False
+    
+    
+    def solve_a(self):
+        pass
+
 
     def create_cells(self):
         self.cells = []
@@ -471,16 +488,3 @@ class Maze:
         
  
 main()
-
-"""
-IDEAS FOR EXTENDING THE PROJECT
-Add other solving algorithms, like breadth-first search or A*
-Make the visuals prettier, change the colors, etc
-Mess with the animation settings to make it faster/slower. Maybe make backtracking slow and blazing new paths faster?
-Add configurations in the app itself using Tkinter buttons and inputs to allow users to change maze size, speed, etc
-Make much larger mazes to solve
-Make it a game where the user chooses directions
-If you made it a game, allow the user to race an algorithm
-Make it 3 dimensional
-Time the various algorithms and see which ones are the fastest
-"""
