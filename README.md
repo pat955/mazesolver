@@ -1,5 +1,6 @@
 # Maze solver
 Python version: 3.12
+
 This project is mostly to practice making algorithms, using tkinter library and using branches in github. 
 
 # Default maze showcase
