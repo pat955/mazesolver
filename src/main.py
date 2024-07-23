@@ -1,5 +1,6 @@
 from window import Window
 # Add documentation 
+# increase reccursion depth
 # Add more interaction
 # Clean code up
 # Add customization, rows, columns, speed
